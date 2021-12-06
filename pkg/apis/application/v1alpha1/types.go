@@ -677,6 +677,11 @@ type Info struct {
 
 type SyncOptions []string
 
+type NamespaceSyncOptions struct {
+	ResourceQuotaList v1.ResourceQuotaList `json:"resourceQuotaList" protobuf:"bytes,1,name=resourceQuotaList"`
+	LimitRangeList    v1.LimitRangeList    `json:"limitRangeList" protobuf:"bytes,2,name=limitRangeList"`
+}
+
 // AddOption adds a sync option to the list of sync options and returns the modified list.
 // If option was already set, returns the unmodified list of sync options.
 func (o SyncOptions) AddOption(option string) SyncOptions {
@@ -717,6 +722,8 @@ type SyncPolicy struct {
 	SyncOptions SyncOptions `json:"syncOptions,omitempty" protobuf:"bytes,2,opt,name=syncOptions"`
 	// Retry controls failed sync retry behavior
 	Retry *RetryStrategy `json:"retry,omitempty" protobuf:"bytes,3,opt,name=retry"`
+	// Namespace option to manage namespace during sync
+	NamespaceSyncOptions NamespaceSyncOptions `json:"namespaceSyncOptions,omitempty" protobuf:"bytes,4,opt,name=namespaceSyncOptions"`
 }
 
 // IsZero returns true if the sync policy is empty

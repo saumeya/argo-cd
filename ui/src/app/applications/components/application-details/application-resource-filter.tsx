@@ -1,11 +1,12 @@
 import * as React from 'react';
 import {Checkbox} from 'argo-ui';
-import {ApplicationTree, HealthStatusCode, SyncStatusCode} from '../../../shared/models';
+import {ApplicationTree, HealthStatusCode, HealthStatuses, SyncStatusCode, SyncStatuses} from '../../../shared/models';
 import {AppDetailsPreferences, services} from '../../../shared/services';
 import {Context} from '../../../shared/context';
 import {Filter, FiltersGroup} from '../filter/filter';
 import {ComparisonStatusIcon, HealthStatusIcon} from '../utils';
 import {resources} from '../resources';
+import { ResourceTreeNode } from '../application-resource-tree/application-resource-tree';
 
 const uniq = (value: string, index: number, self: string[]) => self.indexOf(value) === index;
 
@@ -17,6 +18,7 @@ export const Filters = (props: {
     children?: React.ReactNode;
     pref: AppDetailsPreferences;
     tree: ApplicationTree;
+    treeNodes: ResourceTreeNode[]
     onSetFilter: (items: string[]) => void;
     onClearFilter: () => void;
 }) => {
@@ -104,16 +106,34 @@ export const Filters = (props: {
     const selectedFor = (prefix: string) => {
         return groupedFilters[prefix] ? groupedFilters[prefix].split(',').map(removePrefix(prefix)) : [];
     };
-
+    
+    const getOptionCount = (label: string, filterType: string) : number => {
+        switch(filterType) {
+            case 'Sync':
+                return props.treeNodes.filter(x => x.status==SyncStatuses[label]).length
+            case 'Health':
+               return props.treeNodes.filter(x => x.health?.status==HealthStatuses[label]).length
+            case 'Kind':
+                return props.treeNodes.filter(x => x.kind==label).length            
+            default:
+                return 0
+        }
+    }
     return (
         <FiltersGroup content={props.children} appliedFilter={pref.resourceFilter} onClearFilter={onClearFilter} setShown={setShown} expanded={shown}>
             {ResourceFilter({label: 'NAME', prefix: 'name', options: names.map(toOption), field: true})}
-            {ResourceFilter({label: 'KINDS', prefix: 'kind', options: kinds.map(toOption), abbreviations: resources, field: true})}
+            {ResourceFilter({label: 'KINDS', prefix: 'kind', 
+            options: kinds.map(label => ({
+                label,
+                count: getOptionCount(label, 'Kind')
+            })), 
+            abbreviations: resources, field: true})}
             {ResourceFilter({
                 label: 'SYNC STATUS',
                 prefix: 'sync',
                 options: ['Synced', 'OutOfSync'].map(label => ({
                     label,
+                    count: getOptionCount(label, 'Sync'),
                     icon: <ComparisonStatusIcon status={label as SyncStatusCode} noSpin={true} />
                 }))
             })}
@@ -122,6 +142,7 @@ export const Filters = (props: {
                 prefix: 'health',
                 options: ['Healthy', 'Progressing', 'Degraded', 'Suspended', 'Missing', 'Unknown'].map(label => ({
                     label,
+                    count: getOptionCount(label, 'Health'),
                     icon: <HealthStatusIcon state={{status: label as HealthStatusCode, message: ''}} noSpin={true} />
                 }))
             })}

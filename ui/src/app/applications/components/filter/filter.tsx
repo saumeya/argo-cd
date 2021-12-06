@@ -97,7 +97,7 @@ export const Filter = (props: FilterProps) => {
         if (props.field) {
             setTags(
                 Object.keys(values).map(v => {
-                    return {label: v} as CheckboxOption;
+                    return {label: v, count: props.options.find(x => x.label === v).count} as CheckboxOption;
                 })
             );
         }
@@ -116,8 +116,8 @@ export const Filter = (props: FilterProps) => {
                 {props.label || 'FILTER'}
                 {(props.selected || []).length > 0 || (props.field && Object.keys(values).length > 0) ? (
                     <button
-                        className='argo-button argo-button--base argo-button--sm'
-                        style={{marginLeft: 'auto'}}
+                        className='argo-button argo-button--base argo-button--sm argo-button--right'
+                        // style={{marginLeft: 'auto'}}
                         onClick={() => {
                             setValues({} as {[label: string]: boolean});
                             setInput('');

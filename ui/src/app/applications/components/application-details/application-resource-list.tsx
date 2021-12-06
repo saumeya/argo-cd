@@ -6,13 +6,14 @@ import {ResourceIcon} from '../resource-icon';
 import {ResourceLabel} from '../resource-label';
 import {ComparisonStatusIcon, HealthStatusIcon, nodeKey} from '../utils';
 import {Consumer} from '../../../shared/context';
+import {ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
 
 export const ApplicationResourceList = ({
     resources,
     onNodeClick,
     nodeMenu
 }: {
-    resources: models.ResourceStatus[];
+    resources: ResourceTreeNode[];
     onNodeClick?: (fullName: string) => any;
     nodeMenu?: (node: models.ResourceNode) => React.ReactNode;
 }) => (
