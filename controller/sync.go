@@ -17,10 +17,12 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/utils/kube"
 	jsonpatch "github.com/evanphx/json-patch"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/managedfields"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubectl/pkg/util/openapi"
 
 	"github.com/argoproj/argo-cd/v2/controller/metrics"
@@ -440,7 +442,7 @@ func normalizeTargetResources(cr *comparisonResult) ([]*unstructured.Unstructure
 			if err != nil {
 				return nil, err
 			}
-			normalizedTarget, err = applyMergePatch(normalizedTarget, patch)
+			normalizedTarget, err = applyStrategicMergePatch(normalizedTarget, patch)
 			if err != nil {
 				return nil, err
 			}
@@ -538,6 +540,24 @@ func applyMergePatch(obj *unstructured.Unstructured, patch []byte) (*unstructure
 		return nil, err
 	}
 	return patchedObj, nil
+}
+
+func applyStrategicMergePatch(current *unstructured.Unstructured, patch []byte) (*unstructured.Unstructured, error) {
+	originalJSON, err := current.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	patched, err := strategicpatch.StrategicMergePatch(originalJSON, patch, &corev1.Deployment{})
+	if err != nil {
+		return nil, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	if err := obj.UnmarshalJSON(patched); err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // hasSharedResourceCondition will check if the Application has any resource that has already
