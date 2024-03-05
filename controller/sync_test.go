@@ -361,7 +361,7 @@ func TestNormalizeTargetResources(t *testing.T) {
 		assert.Equal(t, int64(4), replicas)
 	})
 	t.Run("will keep new array entries not found in live state if not ignored", func(t *testing.T) {
-		t.Skip("limitation in the current implementation")
+
 		// given
 		ignores := []v1alpha1.ResourceIgnoreDifferences{
 			{
@@ -384,5 +384,269 @@ func TestNormalizeTargetResources(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, 2, len(containers))
+	})
+	t.Run("will correctly set array entries if new entries have been added", func(t *testing.T) {
+		// given
+		ignores := []v1alpha1.ResourceIgnoreDifferences{
+			{
+				Group:             "apps",
+				Kind:              "Deployment",
+				JQPathExpressions: []string{".spec.template.spec.containers[].env[] | select(.name == \"SOME_ENV_VAR\")"},
+			},
+		}
+		f := setup(t, ignores)
+		live := test.YamlToUnstructured(testdata.LiveDeploymentEnvVarsYaml)
+		target := test.YamlToUnstructured(testdata.TargetDeploymentEnvVarsYaml)
+		f.comparisonResult.reconciliationResult.Live = []*unstructured.Unstructured{live}
+		f.comparisonResult.reconciliationResult.Target = []*unstructured.Unstructured{target}
+
+		// when
+		targets, err := normalizeTargetResources(f.comparisonResult)
+
+		// then
+		require.NoError(t, err)
+		require.Equal(t, 1, len(targets))
+		containers, ok, err := unstructured.NestedSlice(targets[0].Object, "spec", "template", "spec", "containers")
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, 1, len(containers))
+
+		ports := containers[0].(map[string]interface{})["ports"].([]interface{})
+		assert.Equal(t, 1, len(ports))
+
+		env := containers[0].(map[string]interface{})["env"].([]interface{})
+		assert.Equal(t, 3, len(env))
+
+		first := env[0]
+		second := env[1]
+		third := env[2]
+
+		// Currently the defined order at this time is the insertion order of the target manifest.
+		//changed due to strategic merge patch
+		assert.Equal(t, "SOME_OTHER_ENV_VAR", second.(map[string]interface{})["name"])
+		assert.Equal(t, "some_other_value", second.(map[string]interface{})["value"])
+
+		assert.Equal(t, "YET_ANOTHER_ENV_VAR", third.(map[string]interface{})["name"])
+		assert.Equal(t, "yet_another_value", third.(map[string]interface{})["value"])
+
+		assert.Equal(t, "SOME_ENV_VAR", first.(map[string]interface{})["name"])
+		assert.Equal(t, "some_value", first.(map[string]interface{})["value"])
+	})
+	// t.Run("mutating-webhook-config", func(t *testing.T) {
+	// 	// given
+
+	// 	ignores := []v1alpha1.ResourceIgnoreDifferences{
+	// 		{
+	// 			Group:             "admissionregistration.k8s.io",
+	// 			Kind:              "MutatingWebhookConfiguration",
+	// 			JQPathExpressions: []string{".webhooks[]?.clientConfig.caBundle"},
+	// 		},
+	// 	}
+	// 	f := setup(t, ignores)
+	// 	live := test.YamlToUnstructured(testdata.LiveMutatingWebhookConfigYaml)
+	// 	target := test.YamlToUnstructured(testdata.TargetMutatingWebhookConfigYaml)
+	// 	f.comparisonResult.reconciliationResult.Live = []*unstructured.Unstructured{live}
+	// 	f.comparisonResult.reconciliationResult.Target = []*unstructured.Unstructured{target}
+
+	// 	// when
+	// 	targets, err := normalizeTargetResources(f.comparisonResult)
+
+	// 	// then
+	// 	require.NoError(t, err)
+	// 	require.Equal(t, 1, len(targets))
+	// 	webhooks, ok, err := unstructured.NestedSlice(targets[0].Object, "webhooks")
+	// 	require.NoError(t, err)
+	// 	require.True(t, ok)
+	// 	assert.Equal(t, 3, len(webhooks))
+
+	// 	first := webhooks[0]
+	// 	second := webhooks[1]
+	// 	third := webhooks[2]
+
+	// 	assert.Equal(t, "something", (first.(map[string]interface{})["clientConfig"]).(map[string]interface{})["caBundle"])
+	// 	assert.Equal(t, "something", (second.(map[string]interface{})["clientConfig"]).(map[string]interface{})["caBundle"])
+	// 	assert.Equal(t, "something-new", (third.(map[string]interface{})["clientConfig"]).(map[string]interface{})["caBundle"])
+	// })
+	// t.Run("rollout-obj", func(t *testing.T) {
+	// 	// given
+
+	// 	ignores := []v1alpha1.ResourceIgnoreDifferences{
+	// 		{
+	// 			Group:             "argoproj.io",
+	// 			Kind:              "Rollout",
+	// 			JQPathExpressions: []string{".spec.template.spec.containers[] | select(.name == \"init\") | .image"},
+	// 		},
+	// 	}
+	// 	f := setup(t, ignores)
+	// 	live := test.YamlToUnstructured(testdata.LiveRolloutYaml)
+	// 	target := test.YamlToUnstructured(testdata.TargetRolloutYaml)
+	// 	f.comparisonResult.reconciliationResult.Live = []*unstructured.Unstructured{live}
+	// 	f.comparisonResult.reconciliationResult.Target = []*unstructured.Unstructured{target}
+
+	// 	// when
+	// 	targets, err := normalizeTargetResources(f.comparisonResult)
+
+	// 	// then
+	// 	require.NoError(t, err)
+	// 	require.Equal(t, 1, len(targets))
+	// 	containers, ok, err := unstructured.NestedSlice(targets[0].Object, "spec", "template", "spec", "containers")
+	// 	require.NoError(t, err)
+	// 	require.True(t, ok)
+	// 	assert.Equal(t, 1, len(containers))
+
+	// 	container := containers[0]
+
+	// 	assert.Equal(t, int64(15), (container.(map[string]interface{})["livenessProbe"]).(map[string]interface{})["initialDelaySeconds"])
+	// })
+	t.Run("ignore-deployment-image-replicas-changes-additive", func(t *testing.T) {
+		// given
+
+		ignores := []v1alpha1.ResourceIgnoreDifferences{
+			{
+				Group:        "apps",
+				Kind:         "Deployment",
+				JSONPointers: []string{"/spec/replicas"},
+			}, {
+				Group:             "apps",
+				Kind:              "Deployment",
+				JQPathExpressions: []string{".spec.template.spec.containers[].image"},
+			},
+		}
+		f := setup(t, ignores)
+		live := test.YamlToUnstructured(testdata.MinimalImageReplicaDeploymentYaml)
+		target := test.YamlToUnstructured(testdata.AdditionalImageReplicaDeploymentYaml)
+		f.comparisonResult.reconciliationResult.Live = []*unstructured.Unstructured{live}
+		f.comparisonResult.reconciliationResult.Target = []*unstructured.Unstructured{target}
+
+		// when
+		targets, err := normalizeTargetResources(f.comparisonResult)
+
+		// then
+		require.NoError(t, err)
+		require.Equal(t, 1, len(targets))
+		metadata, ok, err := unstructured.NestedMap(targets[0].Object, "metadata")
+		require.NoError(t, err)
+		require.True(t, ok)
+		labels, ok := metadata["labels"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 2, len(labels))
+		assert.Equal(t, "web", labels["appProcess"])
+
+		spec, ok, err := unstructured.NestedMap(targets[0].Object, "spec")
+		require.NoError(t, err)
+		require.True(t, ok)
+
+		assert.Equal(t, int64(1), spec["replicas"])
+
+		template, ok := spec["template"].(map[string]interface{})
+		require.True(t, ok)
+
+		tMetadata, ok := template["metadata"].(map[string]interface{})
+		require.True(t, ok)
+		tLabels, ok := tMetadata["labels"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 2, len(tLabels))
+		assert.Equal(t, "web", tLabels["appProcess"])
+
+		tSpec, ok := template["spec"].(map[string]interface{})
+		require.True(t, ok)
+		containers, ok, err := unstructured.NestedSlice(tSpec, "containers")
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, 1, len(containers))
+
+		first := containers[0].(map[string]interface{})
+		assert.Equal(t, "alpine:3", first["image"])
+
+		resources, ok := first["resources"].(map[string]interface{})
+		require.True(t, ok)
+		requests, ok := resources["requests"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "400m", requests["cpu"])
+
+		env, ok, err := unstructured.NestedSlice(first, "env")
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, 1, len(env))
+
+		env0 := env[0].(map[string]interface{})
+		assert.Equal(t, "EV", env0["name"])
+		assert.Equal(t, "here", env0["value"])
+	})
+	t.Run("ignore-deployment-image-replicas-changes-reductive", func(t *testing.T) {
+		// given
+
+		ignores := []v1alpha1.ResourceIgnoreDifferences{
+			{
+				Group:        "apps",
+				Kind:         "Deployment",
+				JSONPointers: []string{"/spec/replicas"},
+			}, {
+				Group:             "apps",
+				Kind:              "Deployment",
+				JQPathExpressions: []string{".spec.template.spec.containers[].image"},
+			},
+		}
+		f := setup(t, ignores)
+		live := test.YamlToUnstructured(testdata.AdditionalImageReplicaDeploymentYaml)
+		target := test.YamlToUnstructured(testdata.MinimalImageReplicaDeploymentYaml)
+		f.comparisonResult.reconciliationResult.Live = []*unstructured.Unstructured{live}
+		f.comparisonResult.reconciliationResult.Target = []*unstructured.Unstructured{target}
+
+		// when
+		targets, err := normalizeTargetResources(f.comparisonResult)
+
+		// then
+		require.NoError(t, err)
+		require.Equal(t, 1, len(targets))
+		metadata, ok, err := unstructured.NestedMap(targets[0].Object, "metadata")
+		require.NoError(t, err)
+		require.True(t, ok)
+		labels, ok := metadata["labels"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 1, len(labels))
+		_, ok, err = unstructured.NestedMap(labels, "appProcess")
+		require.NoError(t, err)
+		require.False(t, ok)
+
+		spec, ok, err := unstructured.NestedMap(targets[0].Object, "spec")
+		require.NoError(t, err)
+		require.True(t, ok)
+
+		assert.Equal(t, int64(2), spec["replicas"])
+
+		template, ok := spec["template"].(map[string]interface{})
+		require.True(t, ok)
+
+		tMetadata, ok := template["metadata"].(map[string]interface{})
+		require.True(t, ok)
+		tLabels, ok := tMetadata["labels"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 1, len(tLabels))
+		_, ok, err = unstructured.NestedMap(tLabels, "appProcess")
+		require.NoError(t, err)
+		require.False(t, ok)
+
+		tSpec, ok := template["spec"].(map[string]interface{})
+		require.True(t, ok)
+		containers, ok, err := unstructured.NestedSlice(tSpec, "containers")
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, 1, len(containers))
+
+		first := containers[0].(map[string]interface{})
+		assert.Equal(t, "alpine:2", first["image"])
+
+		resources, ok := first["resources"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 0, len(resources))
+		_, ok, err = unstructured.NestedMap(resources, "requests")
+		require.NoError(t, err)
+		require.False(t, ok)
+
+		_, ok, err = unstructured.NestedSlice(first, "env")
+		require.NoError(t, err)
+		require.False(t, ok)
+
 	})
 }
