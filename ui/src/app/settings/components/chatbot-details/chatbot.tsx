@@ -63,15 +63,18 @@ export const ChatBot = () => {
                     </div>
                 )}
             </DataLoader> */}
+            <div></div>
             <div>
-      <form onSubmit={handleSubmit}>
+
+      <form onSubmit={handleSubmit} className="form-container">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message"
+          placeholder="Type your question"
+          style={{width: "80%"}}
         />
-        <button  type="submit">Send Message</button>
+        <button className="submit-button" type="submit">Ask me</button>
       </form>
       {conversations.map((conv, index) => (
         <div key={index} className="chat-box">

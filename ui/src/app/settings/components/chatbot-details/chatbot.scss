@@ -1,26 +1,26 @@
 @import 'node_modules/argo-ui/src/styles/config';
 @import 'node_modules/argo-ui/src/styles/theme';
 
-.appearance-list {
-    &__panel {
-        margin: 18px 0;
-        position: relative;
-        padding: 20px;
-        font-size: 16px;
-        @include themify($themes) {
-            background-color: themed('background-2'); 
-            color: themed('text-1');                              
-        }
-        border-radius: 4px;
-        box-shadow: 1px 2px 3px rgba(#000, 0.1);
-    }
+// .appearance-list {
+//     &__panel {
+//         margin: 18px 0;
+//         position: relative;
+//         padding: 20px;
+//         font-size: 16px;
+//         @include themify($themes) {
+//             background-color: themed('background-2'); 
+//             color: themed('text-1');                              
+//         }
+//         border-radius: 4px;
+//         box-shadow: 1px 2px 3px rgba(#000, 0.1);
+//     }
 
-    &__button {
-        position: absolute;
-        top: 25%;
-        right: 30px;
-    }
-}
+//     &__button {
+//         position: absolute;
+//         top: 25%;
+//         right: 30px;
+//     }
+// }
 
 .chat-box {
     border: 1px solid #ccc;
@@ -31,11 +31,39 @@
   }
   
   .chat-box .message {
-    text-align: right; /* Align message to the right */
+    text-align: left; /* Align message to the right */
     margin: 5px 0;
+    color: orange;
   }
   
   .chat-box .response {
     text-align: left; /* Align response to the left */
     margin: 5px 0;
+    color: greenyellow;
+  }
+
+  .form-container {
+    display: flex;
+    align-items: center;
+    padding-top: 20px;
+    padding-left: 10px;
+  }
+  
+  .input-field {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .submit-button {
+    padding: 10px 20px;
+    border-radius: 20px;
+    margin-left: 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
   }
