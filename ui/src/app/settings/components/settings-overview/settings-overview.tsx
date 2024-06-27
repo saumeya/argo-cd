@@ -38,10 +38,16 @@ const settings = [
         path: './accounts'
     },
     {
+        title: 'ChatBot Support',
+        description: 'Ask our Argo Bot anything ',
+        path: './chatbot'
+    },
+    {
         title: 'Appearance',
         description: 'Configure themes in UI',
         path: './appearance'
-    }
+    },
+   
 ];
 
 export const SettingsOverview: React.StatelessComponent = (props: any, context: AppContext) => (

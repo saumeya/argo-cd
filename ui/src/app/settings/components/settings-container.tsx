@@ -12,6 +12,7 @@ import {ProjectsList} from './projects-list/projects-list';
 import {ReposList} from './repos-list/repos-list';
 import {SettingsOverview} from './settings-overview/settings-overview';
 import {AppearanceList} from './appearance-list/appearance-list';
+import { ChatBot } from './chatbot-details/chatbot';
 
 export const SettingsContainer = (props: RouteComponentProps<any>) => (
     <Switch>
@@ -26,6 +27,7 @@ export const SettingsContainer = (props: RouteComponentProps<any>) => (
         <Route exact={true} path={`${props.match.path}/accounts`} component={AccountsList} />
         <Route exact={true} path={`${props.match.path}/accounts/:name`} component={AccountDetails} />
         <Route exact={true} path={`${props.match.path}/appearance`} component={AppearanceList} />
+        <Route exact={true} path={`${props.match.path}/chatbot`} component={ChatBot} />
         <Redirect path='*' to={`${props.match.path}`} />
     </Switch>
 );
