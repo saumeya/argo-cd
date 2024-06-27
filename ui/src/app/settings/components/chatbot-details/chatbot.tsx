@@ -21,7 +21,14 @@ export const ChatBot = () => {
         body: JSON.stringify({message}),
       })
       .then(response => {
-        setConversations([...conversations, { message: message, response: response.json() }]);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("RESPONSe", data);
+        setConversations([...conversations, { message: message, response: data.response }]);
         setMessage('');
       })
       .catch(error => {
@@ -64,7 +71,7 @@ export const ChatBot = () => {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message"
         />
-        <button type="submit">Send Message</button>
+        <button  type="submit">Send Message</button>
       </form>
       {conversations.map((conv, index) => (
         <div key={index} className="chat-box">
